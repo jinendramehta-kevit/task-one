@@ -5,7 +5,6 @@ const bcrypt = require('bcryptjs');
 
 const mongoose = require('./../mongoose/mongoose');
 
-
 var UserSchema = mongoose.Schema({
     name: {
         type: String,
@@ -42,6 +41,15 @@ var UserSchema = mongoose.Schema({
         }
     },
 
+    photo: {
+        image: {
+            type: Buffer,
+        },
+        name: {
+            type: String,
+        }
+    },
+
     tokens: [{
         access: {
             type: String,
@@ -57,13 +65,13 @@ var UserSchema = mongoose.Schema({
 UserSchema.methods.toJSON = function () {
     var userObject = this.toObject();
 
-    return _.pick(userObject, ['_id', 'email']);
+    return _.pick(userObject, ['name', 'photo']);
 };
 
 UserSchema.methods.generateAuthToken = function () {
     var user = this;
     var access = 'auth';
-    
+
     var token = jwt.sign({ _id: user._id.toHexString(), access }, "$ecret$Alt#@").toString();
 
     user.tokens.push({ access, token });
@@ -78,7 +86,7 @@ UserSchema.methods.removeToken = function (token) {
 
     return user.updateOne({
         $pull: {
-            tokens: {token}
+            tokens: { token }
         }
     });
 };
@@ -116,7 +124,18 @@ UserSchema.statics.findByCredentials = function (email, password) {
                 }
             });
         });
-    },(e) => reject());
+    }, (e) => reject());
+};
+
+UserSchema.statics.findByEmail = function (email) {
+    return User.findOne({ email }).then((doc) => {
+        if (!doc) {
+            console.log('error');
+            return Promise.reject();
+        } else {
+            return Promise.resolve(doc);
+        }
+    });
 };
 
 UserSchema.pre('save', function (next) {
